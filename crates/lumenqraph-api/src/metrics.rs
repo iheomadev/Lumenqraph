@@ -11,9 +11,18 @@ use crate::metrics_middleware::escape_label_value;
 use crate::state::AppState;
 
 pub async fn metrics(State(state): State<AppState>) -> ApiResult<impl IntoResponse> {
-    let total_events: (i64,) = sqlx::query_as("SELECT count(*) FROM events")
-        .fetch_one(&state.pool)
-        .await?;
+    // #797: a literal `SELECT count(*) FROM events` is a full scan of the
+    // largest table on every scrape. Use the Postgres planner's row estimate
+    // (pg_class.reltuples, refreshed by ANALYZE) instead. It is a single catalog
+    // lookup whose cost is independent of the number of rows in `events`, so a
+    // scrape stays cheap as the table grows to mainnet scale. The value is an
+    // estimate, not an exact count — see the HELP text below.
+    let total_events: (i64,) = sqlx::query_as(
+        "SELECT GREATEST(reltuples::bigint, 0) FROM pg_class \
+         WHERE relname = 'events' AND relkind = 'r' LIMIT 1",
+    )
+    .fetch_one(&state.pool)
+    .await?;
 
     let requests = state.http_requests.load(Ordering::Relaxed);
     let audit_dropped = state.audit_dropped.load(Ordering::Relaxed);
@@ -30,7 +39,7 @@ pub async fn metrics(State(state): State<AppState>) -> ApiResult<impl IntoRespon
     let sse_lagged = state.event_fanout.lagged_total();
 
     let mut body = format!(
-        "# HELP lumenqraph_api_events_stored Current number of stored events\n\
+        "# HELP lumenqraph_api_events_stored Approximate number of stored events (Postgres pg_class.reltuples estimate, refreshed by ANALYZE; not an exact COUNT(*) so a /metrics scrape never scans the events table)\n\
          # TYPE lumenqraph_api_events_stored gauge\n\
          lumenqraph_api_events_stored {events}\n\
          # HELP lumenqraph_api_rate_limit_backend_errors_total Redis rate-limit backend errors (each applies the configured fail mode)\n\

@@ -41,6 +41,13 @@ Breaking changes will be documented in the changelog with migration guidance whe
 
 ### Fixed
 
+- `GET /metrics` computed `lumenqraph_api_events_stored` with an exact
+  `SELECT count(*) FROM events` on every Prometheus scrape — a full scan of the
+  largest table that grows linearly with it and lets an unauthenticated client
+  generate database load. The gauge now reads the Postgres planner row estimate
+  (`pg_class.reltuples`, refreshed by `ANALYZE`), a single catalog lookup whose
+  cost is independent of the number of rows in `events`. The HELP text states
+  the value is an estimate, not an exact count (#797).
 - Indexer `/health` returned HTTP 200 even when degraded, so Docker
   `HEALTHCHECK`, Kubernetes probes and Fly checks could not detect a stuck
   poller; it now returns 503 when the cursor has not advanced for

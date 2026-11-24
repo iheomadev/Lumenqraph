@@ -448,7 +448,7 @@ Ship-ready Prometheus alert rules and Grafana dashboards are included in the
 | `lumenqraph_indexer_events_ingested_total` | Counter | Total events ingested |
 | `lumenqraph_indexer_errors_total` | Counter | Total poll-cycle errors |
 | `lumenqraph_api_requests_total` | Counter | Total API requests served |
-| `lumenqraph_api_events_stored` | Gauge | Total events in database |
+| `lumenqraph_api_events_stored` | Gauge | Approximate events in database (`pg_class.reltuples` estimate, not an exact `COUNT(*)`) |
 | `lumenqraph_webhooks_pending_deliveries` | Gauge | Webhook deliveries pending (queue depth), refreshed each dispatcher tick |
 
 #### Alert Rules

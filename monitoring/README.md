@@ -96,7 +96,10 @@ dedicated Grafana dashboard panels.
 
 ### Data Metrics
 
-- **`lumenqraph_api_events_stored`** - Total events stored in database
+- **`lumenqraph_api_events_stored`** - Approximate number of events stored in
+  the database. Sourced from `pg_class.reltuples` (refreshed by `ANALYZE`), not
+  an exact `COUNT(*)`, so a `/metrics` scrape never scans the `events` table
+  (#797). The value is an estimate and can lag `ANALYZE` cycles.
 
 ### Webhook Metrics
 
@@ -120,7 +123,7 @@ Exposed by the `lumenqraph-webhooks` service on its own `/metrics` endpoint
 | `lumenqraph_api_call_cache_hits_total` | counter | count | API |
 | `lumenqraph_api_call_cache_misses_total` | counter | count | API |
 | `lumenqraph_api_call_cache_size` | gauge | count | API |
-| `lumenqraph_api_events_stored` | gauge | count | API |
+| `lumenqraph_api_events_stored` | gauge | count (est.) | API |
 | `lumenqraph_api_http_request_duration_ms` | histogram | milliseconds | API |
 | `lumenqraph_api_rate_limit_backend_errors_total` | counter | count | API |
 | `lumenqraph_api_requests_total` | counter | count | API |
